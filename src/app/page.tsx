@@ -58,12 +58,12 @@ const DEFAULT_SETTINGS: Settings = {
   copyright: '© 2025 Sistem Presensi Online - SMK Handayani Banjaran'
 }
 
-// School Location Settings
+// School Location Settings - SMK Handayani Banjaran
 const SCHOOL_CONFIG = {
   location: {
-    lat: -6.903444,
-    lng: 107.614532,
-    radius: 100
+    lat: -7.0332,
+    lng: 107.592,
+    radius: 150
   },
   absenStartTime: '06:00',
   absenEndTime: '08:00'

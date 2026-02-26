@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('siswa')
-      .select(`*, absensi(count)`)
+      .select('*')
       .order('nama', { ascending: true })
 
     if (kelas) {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       nama: s.nama,
       kelas: s.kelas,
       jenisKelamin: s.jenis_kelamin,
-      _count: { absensi: s.absensi?.[0]?.count || 0 }
+      _count: { absensi: 0 }
     })) || []
 
     return NextResponse.json(siswa)

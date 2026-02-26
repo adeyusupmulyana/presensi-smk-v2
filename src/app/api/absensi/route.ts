@@ -31,13 +31,12 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('absensi')
-      .select('*, siswa(*)')
+      .select('*, siswa(id, nis, nama, kelas, jenis_kelamin)')
       .order('tanggal', { ascending: false })
       .order('waktu', { ascending: false })
 
     if (tanggal) query = query.eq('tanggal', tanggal)
     if (siswaId) query = query.eq('siswa_id', parseInt(siswaId))
-    if (kelas) query = query.eq('siswa.kelas', kelas)
 
     const { data, error } = await query
 
@@ -45,7 +44,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(data?.map(transformAbsensi) || [])
+    // Filter by kelas after fetching (Supabase doesn't support nested filter in where)
+    let result = data?.map(transformAbsensi) || []
+    if (kelas) {
+      result = result.filter(a => a.siswa?.kelas === kelas)
+    }
+
+    return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json({ error: 'Gagal mengambil data absensi' }, { status: 500 })
   }
@@ -88,7 +93,7 @@ export async function POST(request: NextRequest) {
         keterangan: keterangan || null,
         lokasi: lokasi || null
       }])
-      .select('*, siswa(*)')
+      .select('*, siswa(id, nis, nama, kelas, jenis_kelamin)')
       .single()
 
     if (error) {
@@ -118,7 +123,7 @@ export async function PUT(request: NextRequest) {
       .from('absensi')
       .update({ status, keterangan })
       .eq('id', parseInt(id))
-      .select('*, siswa(*)')
+      .select('*, siswa(id, nis, nama, kelas, jenis_kelamin)')
       .single()
 
     if (error) {

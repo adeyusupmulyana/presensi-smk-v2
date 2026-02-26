@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     // Build filter for absensi
     let absensiQuery = supabase
       .from('absensi')
-      .select('*, siswa(*)')
+      .select('*, siswa(id, nis, nama, kelas, jenis_kelamin)')
 
     if (tanggal) {
       absensiQuery = absensiQuery.eq('tanggal', tanggal)
@@ -42,13 +42,10 @@ export async function GET(request: NextRequest) {
       absensiQuery = absensiQuery.gte('tanggal', `${bulan}-01`).lte('tanggal', `${bulan}-31`)
     }
 
-    if (kelas) {
-      absensiQuery = absensiQuery.eq('siswa.kelas', kelas)
-    }
-
     const { data: absensiData } = await absensiQuery
 
-    const absensi = absensiData?.map(a => ({
+    // Filter by kelas after fetching
+    let absensi = absensiData?.map(a => ({
       id: a.id,
       siswaId: a.siswa_id,
       tanggal: a.tanggal,
@@ -65,6 +62,10 @@ export async function GET(request: NextRequest) {
         jenisKelamin: a.siswa.jenis_kelamin
       } : null
     })) || []
+
+    if (kelas) {
+      absensi = absensi.filter(a => a.siswa?.kelas === kelas)
+    }
 
     // Statistics
     const stats = {
@@ -78,30 +79,28 @@ export async function GET(request: NextRequest) {
     // Get students who haven't attended today
     let todayQuery = supabase
       .from('absensi')
-      .select('siswa_id, siswa!inner(kelas)')
+      .select('siswa_id')
       .eq('tanggal', tanggal || today)
-
-    if (kelas) {
-      todayQuery = todayQuery.eq('siswa.kelas', kelas)
-    }
 
     const { data: todayAbsensiIds } = await todayQuery
     const siswaIdsWithAbsensi = new Set(todayAbsensiIds?.map(a => a.siswa_id) || [])
-    const belumAbsen = siswa.filter(s => !siswaIdsWithAbsensi.has(s.id))
+
+    // Filter siswa by kelas for belumAbsen
+    let filteredSiswa = siswa
+    if (kelas) {
+      filteredSiswa = siswa.filter(s => s.kelas === kelas)
+    }
+    const belumAbsen = filteredSiswa.filter(s => !siswaIdsWithAbsensi.has(s.id))
 
     // Get today's absensi with details
     let todayDetailQuery = supabase
       .from('absensi')
-      .select('*, siswa(*)')
+      .select('*, siswa(id, nis, nama, kelas, jenis_kelamin)')
       .eq('tanggal', today)
-
-    if (kelas) {
-      todayDetailQuery = todayDetailQuery.eq('siswa.kelas', kelas)
-    }
 
     const { data: todayAbsensiData } = await todayDetailQuery
 
-    const todayAbsensi = todayAbsensiData?.map(a => ({
+    let todayAbsensi = todayAbsensiData?.map(a => ({
       id: a.id,
       siswaId: a.siswa_id,
       tanggal: a.tanggal,
@@ -118,6 +117,11 @@ export async function GET(request: NextRequest) {
         jenisKelamin: a.siswa.jenis_kelamin
       } : null
     })) || []
+
+    // Filter by kelas after fetching
+    if (kelas) {
+      todayAbsensi = todayAbsensi.filter(a => a.siswa?.kelas === kelas)
+    }
 
     const todayStats = {
       hadir: todayAbsensi.filter(a => a.status === 'hadir'),
